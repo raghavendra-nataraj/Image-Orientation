@@ -2,7 +2,8 @@
 
 import sys
 import csv
-import pprint
+import itertools
+from Model import Nearest
 
 train_file = "train_file.txt"
 test_file = "test_file.txt"
@@ -30,6 +31,11 @@ if method in ["best"]:
     except IndexError:
         print("You have chosen to not supply model file. We will use file with name \"best.model\" if it exists. If "
               "not we use metadata to train and test using best model")
+header = ["id", "orientation"]
+color_indices = [color + item for item in
+                 [str(i[0]) + str(i[1]) for i in itertools.product([1, 2, 3, 4, 5, 6, 7, 8], repeat=2)] for color in
+                 ['r', 'g', 'b']]
+indices = header + color_indices
 train_rows = []
 test_rows = []
 csv.register_dialect(
@@ -39,9 +45,37 @@ csv.register_dialect(
 with open(train_file, "r") as train_file_handler:
     reader = csv.reader(train_file_handler, dialect="space_dialect")
     for row in reader:
-        train_rows.append(row)
+        current_row = []
+        for column in row:
+            try:
+                current_row.append(int(column))
+            except ValueError:
+                current_row.append(column)
+        current_dict = dict(zip(indices, current_row))
+        train_rows.append(current_dict)
 
 with open(test_file, "r") as test_file_handler:
     reader = csv.reader(test_file_handler, dialect="space_dialect")
     for row in reader:
-        test_rows.append(row)
+        current_row = []
+        for column in row:
+            try:
+                current_row.append(int(column))
+            except ValueError:
+                current_row.append(column)
+        current_dict = dict(zip(indices, current_row))
+        test_rows.append(current_dict)
+model = None
+if method == "nearest":
+    model = Nearest(color_indices)
+
+for train_item in train_rows:
+    model.train(train_item)
+successes = 0
+totals = 0
+for test_item in test_rows:
+    totals += 1
+    id, orientation = model.test(test_item)
+    if orientation == test_item["orientation"]:
+        successes += 1
+print(1.0 * successes / totals)
