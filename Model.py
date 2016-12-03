@@ -27,11 +27,12 @@ class Nearest(Model):
         self.model.append(train_row)
 
     def test(self, test_row):
-        minumum_distance = float("Inf")
+        minimum_distance = float("Inf")
         current_classification = None
         for model_row in self.model:
             current_distance = self.distance(model_row, test_row)
-            if current_distance < minumum_distance:
+            if current_distance < minimum_distance:
+                minimum_distance=current_distance
                 current_classification = model_row["orientation"]
         return test_row["id"], current_classification
 
@@ -39,7 +40,7 @@ class Nearest(Model):
         sum_distance = 0
         for index in self.vector_keys:
             sum_distance += math.pow(dp_2[index] - dp_1[index], 2)
-        return math.sqrt(sum_distance)
+        return sum_distance
 
 
 class AdaBoost(Model):

@@ -36,6 +36,15 @@ color_indices = [color + item for item in
                  [str(i[0]) + str(i[1]) for i in itertools.product([1, 2, 3, 4, 5, 6, 7, 8], repeat=2)] for color in
                  ['r', 'g', 'b']]
 indices = header + color_indices
+select_indices = [color + item for item in
+                  [str(i[0]) + str(i[1]) for i in itertools.product([1, 2, 3, 4, 5, 6, 7, 8], repeat=2) if
+                   i[0] == 1 or i[1] == 1 or i[0] == 8 or i[1] == 8] for color in ['r', 'g']]
+# for color in ['r', 'g', 'b']:
+#     for corner in 1, 8:
+#         for other in [1, 2, 3, 4, 5, 6, 7, 8]:
+#             select_indices.append(color + str(corner) + str(other))
+
+
 train_rows = []
 test_rows = []
 csv.register_dialect(
@@ -65,17 +74,38 @@ with open(test_file, "r") as test_file_handler:
                 current_row.append(column)
         current_dict = dict(zip(indices, current_row))
         test_rows.append(current_dict)
+print("Data set ready")
 model = None
 if method == "nearest":
     model = Nearest(color_indices)
-
 for train_item in train_rows:
     model.train(train_item)
 successes = 0
+
 totals = 0
+print("Training complete")
+confusion_matrix = {"0": {"0": 0, "90": 0, "180": 0, "270": 0}, "90": {"0": 0, "90": 0, "180": 0, "270": 0},
+                    "180": {"0": 0, "90": 0, "180": 0, "270": 0}, "270": {"0": 0, "90": 0, "180": 0, "270": 0}}
 for test_item in test_rows:
     totals += 1
+    if totals % 10 == 0:
+        print("Progress:" + str(1.0 * totals / len(test_rows)))
+        print("Accuracy" + str(1.0 * successes / totals))
     id, orientation = model.test(test_item)
     if orientation == test_item["orientation"]:
         successes += 1
+    confusion_matrix[str(test_item["orientation"])][str(orientation)] += 1
+print("Confusion Matrix")
+print("\t0\t90\t180\t270\t")
+# for key in confusion_matrix.iterkeys():
+print("0\t" + str(confusion_matrix["0"]["0"]) + "\t" + str(confusion_matrix["0"]["90"]) + "\t" + str(
+    confusion_matrix["0"]["180"]) + "\t" + str(confusion_matrix["0"]["270"]))
+print("90\t" + str(confusion_matrix["90"]["0"]) + "\t" + str(confusion_matrix["90"]["90"]) + "\t" + str(
+    confusion_matrix["90"]["180"]) + "\t" + str(confusion_matrix["90"]["270"]))
+print("180\t" + str(confusion_matrix["180"]["0"]) + "\t" + str(confusion_matrix["180"]["90"]) + "\t" + str(
+    confusion_matrix["180"]["180"]) + "\t" + str(confusion_matrix["180"]["270"]))
+print("270\t" + str(confusion_matrix["270"]["0"]) + "\t" + str(confusion_matrix["270"]["90"]) + "\t" + str(
+    confusion_matrix["270"]["180"]) + "\t" + str(confusion_matrix["270"]["270"]))
+print(successes)
+print(totals)
 print(1.0 * successes / totals)
