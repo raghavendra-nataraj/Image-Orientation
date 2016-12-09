@@ -49,6 +49,7 @@ select_indices = [color + item for item in
 
 train_rows = []
 train_rows_net = []
+test_rows_net = []
 test_rows = []
 csv.register_dialect(
     'space_dialect',
@@ -78,6 +79,7 @@ with open(test_file, "r") as test_file_handler:
                 current_row.append(column)
         current_dict = dict(zip(indices, current_row))
         test_rows.append(current_dict)
+        test_rows_net.append(current_row)
 print("Data set ready")
 model = None
 if method == "nearest":
@@ -87,6 +89,7 @@ if method == "nearest":
 elif method == "nnet":
     model = NNet(parameter,len(train_rows_net[0])-2)
     model.train(train_rows_net)
+    model.test(test_rows_net)
 elif method == "adaboost":
     model = AdaBoost(color_indices, int(parameter))
     model.train(train_rows)
