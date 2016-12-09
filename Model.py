@@ -154,8 +154,9 @@ class NNet(Model):
 
     def conv_result_map(self, x):
         value = {'1000':0, '0100': 90, '0010' : 180, '0001': 270}
-        str = ''.join(x)
-        return value[str]
+        x = [str(a) for a in x]
+        str_a = ''.join(x)
+        return value[str_a]
 
 
     def soft_max(self, x):
