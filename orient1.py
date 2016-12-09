@@ -3,9 +3,7 @@
 import sys
 import csv
 import itertools
-from Model import NNet
-from Model import Nearest, AdaBoost
-
+from Model1 import Nearest, AdaBoost, NNet
 
 train_file = "train_file.txt"
 test_file = "test_file.txt"
@@ -18,13 +16,13 @@ try:
     test_file = sys.argv[2]
     method = sys.argv[3]
 except IndexError:
-    print("Usage: python orient.py train_file test_file algorithm [model-parameter]")
+    print("Usage: python orient1.py train_file test_file algorithm [model-parameter]")
     sys.exit(1)
 if method in ["adaboost", "nnet"]:
     try:
-        parameter = int(sys.argv[4])
+        parameter = sys.argv[4]
     except IndexError:
-        print("Usage: python orient.py train_file test_file algorithm model-parameter")
+        print("Usage: python orient1.py train_file test_file algorithm model-parameter")
         print("model-parameter (stump_count for adaboost and hidden_count for nnet) is required")
         sys.exit(2)
 if method in ["best"]:
@@ -48,7 +46,6 @@ select_indices = [color + item for item in
 
 
 train_rows = []
-train_rows_net = []
 test_rows = []
 csv.register_dialect(
     'space_dialect',
@@ -65,7 +62,6 @@ with open(train_file, "r") as train_file_handler:
                 current_row.append(column)
         current_dict = dict(zip(indices, current_row))
         train_rows.append(current_dict)
-        train_rows_net.append(current_row)
 
 with open(test_file, "r") as test_file_handler:
     reader = csv.reader(test_file_handler, dialect="space_dialect")
@@ -84,13 +80,16 @@ if method == "nearest":
     model = Nearest(color_indices)
     for train_item in train_rows:
         model.train(train_item)
-elif method == "nnet":
-    model = NNet(parameter,len(train_rows_net[0])-2)
-    model.train(train_rows_net)
 elif method == "adaboost":
     model = AdaBoost(color_indices, int(parameter))
     model.train(train_rows)
     print(model)
+
+elif method == "nnet":
+    model = NNet(int(parameter))
+    for train_item in train_rows:
+        model.train(train_item)
+        # break
 
 
 successes = 0

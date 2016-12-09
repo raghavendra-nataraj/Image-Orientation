@@ -1,14 +1,10 @@
 import math
-import numpy as np
 import itertools
 import pprint
 import operator
+import pprint
 from random import gauss
-
-
-class Neuron:
-    def __init__(self):
-        self.value = 0
+import operator
 
 
 class Model:
@@ -119,114 +115,81 @@ class AdaBoost(Model):
 
 
 class NNet(Model):
-    def __init__(self, hidden_nodes, length):
+    def __init__(self,parameter):
         self.model_type = "nnet"
-        self.length = length
-        self.h_weights = {}
-        self.o_weights = {}
-        self.hidden_nodes = hidden_nodes
-        self.input_neurons = []
-        self.hidden_neurons = []
-        self.output_neurons = []
-        for i in range(0, length):
-            temp_neuron = Neuron()
-            self.input_neurons.append(temp_neuron)
+        self.image_list={}
+        self.hl_count = parameter
+        self.result = []
 
-        for i in range(0, hidden_nodes):
-            temp_neuron = Neuron()
-            self.hidden_neurons.append(temp_neuron)
-
-        for i in range(0, 4):
-            temp_neuron = Neuron()
-            self.output_neurons.append(temp_neuron)
-
-    def get_rnd(self):
-        return 0.1
-
-    def step_function(self, x):
-        if x > 0:
-            return x
-        return 0
-
-    def result_map(self, x):
-        value = {0: [1, 0, 0, 0], 90: [0, 1, 0, 0], 180: [0, 0, 1, 0], 270: [0, 0, 0, 1]}
-        return value[x]
-
-    def soft_max(self, x):
-        return 0
+    # Loads each image in the form of a dictionary called self.image_list
+    def load_image(self,image):
+        tmp = {}
+        id = ''
+        for elements in image:
+            if elements != 'id':
+                tmp[elements] = image[elements]
+            elif elements == 'id':
+                self.image_list[image[elements]] = None
+                id = image[elements]
+        self.image_list[id] = tmp
+        return id
 
     def generate_gaussian(self):
-        return int(gauss(float(255 / 2), float(255 / 2)))
+        return int(gauss(float(255/2),float(255/2)))
 
-    def train(self, train_row):
-        self.model = train_row
-        for i, input_item in enumerate(self.input_neurons):
-            for j, hidden_item in enumerate(self.hidden_neurons):
-                if i not in self.h_weights:
-                    self.h_weights[i] = {}
-                self.h_weights[i][j] = self.generate_gaussian()
+    def soft_max(self):
+        return None
 
-        
+    def train(self, image):
+        id = self.load_image(image)
+        # pprint.pprint(self.image_list)
+
+        # input layer
+        bias_input = 1
+        input_layer = {}
+        ground_truth = None
+        for pixel in self.image_list[id]:
+            if pixel!='orientation':
+                input_layer[pixel] = (self.image_list[id][pixel] * self.generate_gaussian())+(bias_input * self.generate_gaussian())
+                if input_layer[pixel] > 0:
+                    input_layer[pixel] = input_layer[pixel]
+                else:
+                    input_layer[pixel] = 0
+            else:
+                ground_truth = self.image_list[id][pixel]
+
+        # pprint.pprint(input_layer)
+
+        # hidden layer
+        hidden_layer = {}
+        for i in range(1, self.hl_count+1):
+            hidden_layer[i] = None
+
+        for i in hidden_layer:
+            hidden_layer[i] = [input_layer[key] * self.generate_gaussian() for key in input_layer]
+
+        for i in hidden_layer:
+            hidden_layer[i] = sum(hidden_layer[i])
+            if hidden_layer[i] > 0:
+                hidden_layer[i] = hidden_layer[i]
+            else:
+                hidden_layer[i] = 0
+
+        # pprint.pprint(hidden_layer)
+
+        # output layer
+        output_layer = {0:None,90:None,180:None,270:None}
+        for i in output_layer:
+            output_layer[i] = [hidden_layer[key] * self.generate_gaussian()  for key in hidden_layer]
+
+        for i in output_layer:
+            output_layer[i] = sum(output_layer[i])
+            if output_layer[i] > 0:
+                output_layer[i] = output_layer[i]
+            else:
+                output_layer[i] = 0, ground_truth
 
 
-        # for i, hidden_item in enumerate(self.input_neurons):
-        #     for j, output_item in enumerate(self.output_neurons):
-        #         if i not in self.o_weights:
-        #             self.o_weights[i] = {}
-        #         self.o_weights[i][j] = self.generate_gaussian()
-        #
-        # # exp_output = [0, 90, 180, 270]
-        # for train_item in train_row:
-        #     for index, value in enumerate(train_item[2:]):
-        #         self.input_neurons[index].value = value
-        #
-        # # print len(self.input_neurons)
-        #
-        # for j, hidden_item in enumerate(self.hidden_neurons):
-        #     total = 0
-        #     for i, input_item in enumerate(self.input_neurons):
-        #         total += (input_item.value * self.h_weights[i][j])
-        #     total = self.step_function(total)
-        #     hidden_item.value = total
+        pprint.pprint(output_layer)
 
-        #     for j, output_item in enumerate(self.output_neurons):
-        #         total = 0
-        #         for i, hidden_item in enumerate(self.input_neurons):
-        #             total += (hidden_item.value * self.o_weights[i][j])
-        #         total = self.step_function(total)
-        #         output_item.value = total
-        #
-        #     for index, output_item in enumerate(self.output_neurons):
-        #         output_delta = {index: x - output_item.value for index, x in enumerate(self.result_map(train_item[1]))}
-        #
-        #     hidden_delta = {}
-        #     for i, hidden_item in enumerate(self.hidden_neurons):
-        #         total = 0;
-        #         for j, output_item in enumerate(self.output_neurons):
-        #             total += (output_delta[j] * self.o_weights[i][j])
-        #             print total, output_delta[j], self.o_weights[i][j]
-        #             if math.isnan(total):
-        #                 raw_input()
-        #         hidden_delta[i] = total
-        #
-        #     input_delta = {}
-        #     for i, input_item in enumerate(self.input_neurons):
-        #         total = 0;
-        #         for j, hidden_item in enumerate(self.hidden_neurons):
-        #             total += (hidden_delta[j] * self.h_weights[i][j])
-        #         input_delta[i] = total
-        #
-        #     # Applying Weights
-        #     alpha = 0.1
-        #     for i, input_item in enumerate(self.input_neurons):
-        #         for j, hidden_item in enumerate(self.hidden_neurons):
-        #             self.h_weights[i][j] += (alpha * hidden_item.value * input_delta[i])
-        #
-        #     for i, hidden_item in enumerate(self.hidden_neurons):
-        #         for j, output_item in enumerate(self.output_neurons):
-        #             self.o_weights[i][j] += (alpha * output_item.value * hidden_delta[i])
-        # print self.h_weights
-        # print self.o_weights
 
-    def test(self, train_row):
-        pass
