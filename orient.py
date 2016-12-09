@@ -3,7 +3,7 @@
 import sys
 import csv
 import itertools
-from Model import Nearest
+from Model import Nearest, AdaBoost
 
 train_file = "train_file.txt"
 test_file = "test_file.txt"
@@ -78,19 +78,21 @@ print("Data set ready")
 model = None
 if method == "nearest":
     model = Nearest(color_indices)
-for train_item in train_rows:
-    model.train(train_item)
-successes = 0
+    for train_item in train_rows:
+        model.train(train_item)
+elif method == "adaboost":
+    model = AdaBoost(color_indices, int(parameter))
+    model.train(train_rows)
+    print(model)
 
+successes = 0
+exit(0)
 totals = 0
 print("Training complete")
 confusion_matrix = {"0": {"0": 0, "90": 0, "180": 0, "270": 0}, "90": {"0": 0, "90": 0, "180": 0, "270": 0},
                     "180": {"0": 0, "90": 0, "180": 0, "270": 0}, "270": {"0": 0, "90": 0, "180": 0, "270": 0}}
 for test_item in test_rows:
     totals += 1
-    if totals % 10 == 0:
-        print("Progress:" + str(1.0 * totals / len(test_rows)))
-        print("Accuracy" + str(1.0 * successes / totals))
     id, orientation = model.test(test_item)
     if orientation == test_item["orientation"]:
         successes += 1
