@@ -171,7 +171,7 @@ class NNet(Model):
 
     def train(self, train_row):
         self.model = train_row
-
+        
         # create a list for weights for the hidden layer
         for i, input_item in enumerate(self.input_neurons):
             for j, hidden_item in enumerate(self.hidden_neurons):
@@ -258,7 +258,7 @@ class NNet(Model):
                     hidden_delta[i] = total
 
                 # Applying Weights
-                alpha = 0.00001
+                alpha = 1/float(len(train_row))
                 for j, hidden_item in enumerate(self.hidden_neurons):
                     for i, input_item in enumerate(self.input_neurons):
                         self.h_weights[i][j] += (alpha * input_item.value * hidden_delta[j])
