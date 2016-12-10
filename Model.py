@@ -4,6 +4,7 @@ import itertools
 import pprint
 import operator
 from random import gauss
+from collections import Counter
 
 
 class Neuron:
@@ -152,12 +153,6 @@ class NNet(Model):
         value = {0: [1, 0, 0, 0], 90: [0, 1, 0, 0], 180: [0, 0, 1, 0], 270: [0, 0, 0, 1]}
         return value[x]
 
-    def conv_result_map(self, x):
-        value = {'1000':0, '0100': 90, '0010' : 180, '0001': 270}
-        x = [str(a) for a in x]
-        str_a = ''.join(x)
-        return value[str_a]
-
 
     def soft_max(self, x):
         max_element = max(x)
@@ -167,7 +162,7 @@ class NNet(Model):
         return ret_res
 
     def generate_gaussian(self):
-        return int(gauss(0, float(255 / 2)))
+        return int(gauss(float(255 / 2), float(255 / 4)))
 
     def train(self, train_row):
         self.model = train_row
@@ -261,11 +256,16 @@ class NNet(Model):
             for j, output_item in enumerate(self.output_neurons):
                 for i, hidden_item in enumerate(self.hidden_neurons):
                     self.o_weights[i][j] += (alpha * hidden_item.value * output_delta[j])
-        print self.h_weights
-        print self.o_weights
+        # print self.h_weights
+        # print self.o_weights
+        print "Training Complete"
+
+    def get_orientation(self, x):
+        values = {0: "0", 1: "90", 2: "180", 3: "270"}
+        return values[x.index(max(x))]
 
     def test(self, train_row):
-
+        values = Counter()
         correct = 0
         incorrect = 0
         ##### Input Layer #########
@@ -297,11 +297,11 @@ class NNet(Model):
             # output prediction for the orientation in the form [0, 90, 180, 270]
             maximum = self.soft_max([x.value for x in self.output_neurons])
 
-            if self.conv_result_map(maximum) == int(train_row[1]):
-                correct +=1
-            else:
-                incorrect +=1
+            print self.get_orientation(maximum), train_item[1]
+            if train_row[1] == self.get_orientation(maximum):
+                 values[self.get_orientation(maximum)] += 1
 
-        print "correct : ",correct, "and incorrect : ",incorrect
+            print(values)
 
+        #print "correct : ",values
 
