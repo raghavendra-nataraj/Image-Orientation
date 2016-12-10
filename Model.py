@@ -3,8 +3,11 @@ import numpy as np
 import itertools
 import pprint
 import operator
+import csv
+import time
 from random import gauss
 from collections import Counter
+
 
 
 class Neuron:
@@ -65,18 +68,24 @@ class AdaBoost(Model):
         self.stump_count = stump_count
 
     def train(self, train_rows):
+        rows_considered = train_rows
         feature_combinations = [i for i in itertools.permutations(self.vector_keys, 2)]
         counter = 1
+        incorrect_ids = []
+        past_incorrect_ids = []
+        start = time.time()
         for orientation in ["0", "90", "180", "270"]:
-            print(orientation)
+            print("New orientation:" + orientation)
             stumps_left = self.stump_count
-            weights = [1.0 / len(train_rows)] * len(train_rows)
+            weights = [1.0 / len(rows_considered)] * len(rows_considered)
             while stumps_left > 0:
-                print("Next Stump")
-                pprint.pprint(weights[1:30])
+                incorrect_ids = []
+                # pprint.pprint(weights[1:30])
                 performance_index = {}
-                for current_combination in feature_combinations[0:100]:
+                counter = 0
+                for current_combination in feature_combinations:
                     if current_combination in self.stump_allocation[str(orientation)]:
+                        print("Skipping existing combination" + str(current_combination))
                         continue
                     correct_counts = 0
                     incorrect_counts = 0
@@ -84,13 +93,14 @@ class AdaBoost(Model):
                     all_count = 0
                     totals = 0
                     if counter % 1000 == 0:
-                        print 1.0 * counter / 36672
+                        end = time.time()
+                        print str((1.0 * counter) / 36672) + " at " + str(end - start)
                     train_index = 0
                     for weight_index in range(0, len(weights)):
                         totals += weights[weight_index]
-                        if str(train_rows[weight_index]["orientation"]) == orientation:
+                        if str(rows_considered[weight_index]["orientation"]) == orientation:
                             all_count += 1
-                            if train_rows[weight_index][current_combination[0]] > train_rows[weight_index][
+                            if rows_considered[weight_index][current_combination[0]] > rows_considered[weight_index][
                                 current_combination[1]]:
                                 correct_counts += weights[weight_index]
                             else:
@@ -99,21 +109,42 @@ class AdaBoost(Model):
                         train_index += 1
                     current_performance = (1.0 * correct_counts) / totals
                     performance_index[(current_combination[0], current_combination[1])] = current_performance
+                    counter += 1
                 current_stump_features = max(performance_index.iteritems(), key=operator.itemgetter(1))[0]
-                error = error_count / all_count
-                print("Selected features")
-                print(current_stump_features)
-                print(error)
+                error = (1.0 * error_count) / all_count
+                error_count = 0
                 self.stump_allocation[str(orientation)].append(current_stump_features)
+                self.save("in_progress_model.model")
                 for weight_index in range(0, len(weights)):
-                    if str(train_rows[weight_index]["orientation"]) == orientation:
-                        if train_rows[weight_index][current_stump_features[0]] < train_rows[weight_index][
+                    if str(rows_considered[weight_index]["orientation"]) == orientation:
+                        if rows_considered[weight_index][current_stump_features[0]] < rows_considered[weight_index][
                             current_stump_features[1]]:
+                            if len(past_incorrect_ids) < 1 or weight_index in past_incorrect_ids:
+                                error_count += 1
+                                incorrect_ids.append(weight_index)
+
                             weights[weight_index] *= (error / (1.0 - error))
                 base = sum(weights)
                 for weight_index in range(0, len(weights)):
                     weights[weight_index] = weights[weight_index] / base
                 stumps_left -= 1
+                past_incorrect_ids = list(incorrect_ids)
+
+    def test(self, test_row):
+        votes = {}
+        for orientation, stumps in self.stump_allocation.iteritems():
+            orientation_acceptance = 0
+            for stump in stumps:
+                if test_row[stump[0]] > test_row[stump[1]]:
+                    orientation_acceptance += 1
+            votes[orientation] = (1.0 * orientation_acceptance) / len(stumps)
+        return max(votes.iteritems(), key=operator.itemgetter(1))[0]
+
+    def save(self, filename):
+        with open(filename, 'wb') as csv_file:
+            writer = csv.writer(csv_file)
+            for key, value in self.stump_allocation.items():
+                writer.writerow([key, value])
 
     def __str__(self):
         return pprint.pformat(self.stump_allocation)
