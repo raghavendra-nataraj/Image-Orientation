@@ -213,7 +213,7 @@ class NNet(Model):
                 # Apply the step function on the Sum of ( output of hidden layer * output weight list )
                 for j, output_item in enumerate(self.output_neurons):
                     total = 0
-                    for i, hidden_item in enumerate(self.input_neurons):
+                    for i, hidden_item in enumerate(self.hidden_neurons):
                         total += (hidden_item.value * self.o_weights[i][j])
                     self.x = total
                     total = self.step_function(total)
@@ -299,7 +299,7 @@ class NNet(Model):
             # Apply the step function on the Sum of ( output of hidden layer * output weight list )
             for j, output_item in enumerate(self.output_neurons):
                 total = 0
-                for i, hidden_item in enumerate(self.input_neurons):
+                for i, hidden_item in enumerate(self.hidden_neurons):
                     total += (hidden_item.value * self.o_weights[i][j])
                 total = self.step_function(total)
                 output_item.value = total
