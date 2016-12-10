@@ -248,7 +248,7 @@ class NNet(Model):
                 hidden_delta[i] = total
 
             # Applying Weights
-            alpha = 0.1
+            alpha = 0.0000000000001
             for j, hidden_item in enumerate(self.hidden_neurons):
                 for i, input_item in enumerate(self.input_neurons):
                     self.h_weights[i][j] += (alpha * input_item.value * hidden_delta[j])
@@ -256,12 +256,12 @@ class NNet(Model):
             for j, output_item in enumerate(self.output_neurons):
                 for i, hidden_item in enumerate(self.hidden_neurons):
                     self.o_weights[i][j] += (alpha * hidden_item.value * output_delta[j])
-        # print self.h_weights
-        # print self.o_weights
+        #print self.h_weights
+        print self.o_weights
         print "Training Complete"
 
     def get_orientation(self, x):
-        values = {0: "0", 1: "90", 2: "180", 3: "270"}
+        values = {0: 0, 1: 90, 2: 180, 3: 270}
         return values[x.index(max(x))]
 
     def test(self, train_row):
@@ -296,12 +296,9 @@ class NNet(Model):
 
             # output prediction for the orientation in the form [0, 90, 180, 270]
             maximum = self.soft_max([x.value for x in self.output_neurons])
-
-            print self.get_orientation(maximum), train_item[1]
-            if train_row[1] == self.get_orientation(maximum):
+            if int(train_item[1]) == self.get_orientation(maximum):
                  values[self.get_orientation(maximum)] += 1
 
-            print(values)
 
-        #print "correct : ",values
+        print "correct : ",values
 
