@@ -83,7 +83,7 @@ if method == "nearest":
 elif method == "adaboost":
     model = AdaBoost(color_indices, int(parameter))
     model.train(train_rows)
-    print(model)
+    model.save("adaboost_model.model")
 
 successes = 0
 exit(0)
