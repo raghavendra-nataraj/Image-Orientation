@@ -1,10 +1,19 @@
 import math
+import numpy as np
 import itertools
 import pprint
 import operator
 import csv
 import time
+from random import gauss
+from collections import Counter
 
+
+
+class Neuron:
+    def __init__(self):
+        self.value = 0
+        self.x = 0
 
 class Model:
     model_type = None
@@ -142,5 +151,196 @@ class AdaBoost(Model):
 
 
 class NNet(Model):
-    def __init__(self):
+    def __init__(self, hidden_nodes, length):
         self.model_type = "nnet"
+        self.length = length
+        self.h_weights = {}
+        self.o_weights = {}
+        self.hidden_nodes = hidden_nodes
+        self.input_neurons = []
+        self.hidden_neurons = []
+        self.output_neurons = []
+        for i in range(0, length):
+            temp_neuron = Neuron()
+            self.input_neurons.append(temp_neuron)
+
+        for i in range(0, hidden_nodes):
+            temp_neuron = Neuron()
+            self.hidden_neurons.append(temp_neuron)
+
+        for i in range(0, 4):
+            temp_neuron = Neuron()
+            self.output_neurons.append(temp_neuron)
+
+    def get_rnd(self):
+        return 0.1
+
+    def step_function(self, x):
+        if x > 0:
+            return x
+        return 0.01*x
+
+    def step_function_der(self, x):
+        if x > 0:
+            return 1
+        return 0.01
+    
+    def result_map(self, x):
+        value = {0: [1, 0, 0, 0], 90: [0, 1, 0, 0], 180: [0, 0, 1, 0], 270: [0, 0, 0, 1]}
+        return value[x]
+
+
+    def soft_max(self, x):
+        max_element = max(x)
+        x = [(inp - max_element) for inp in x]
+        sum_element = float(sum([math.e ** inp for inp in x]))
+        ret_res = [math.e ** inp / sum_element for inp in x]
+        return ret_res
+
+    def generate_gaussian(self):
+        return int(gauss(float(255/2), float(255 / 4)))
+
+    def train(self, train_row):
+        self.model = train_row
+
+        # create a list for weights for the hidden layer
+        for i, input_item in enumerate(self.input_neurons):
+            for j, hidden_item in enumerate(self.hidden_neurons):
+                if i not in self.h_weights:
+                    self.h_weights[i] = {}
+                self.h_weights[i][j] = self.generate_gaussian()
+
+        # create a list of weights for the output layer
+        for i, hidden_item in enumerate(self.hidden_neurons):
+            for j, output_item in enumerate(self.output_neurons):
+                if i not in self.o_weights:
+                    self.o_weights[i] = {}
+                self.o_weights[i][j] = self.generate_gaussian()
+
+        # exp_output = [0, 90, 180, 270]
+
+        # Feed Forward Network
+        # --------------------
+
+        ##### Input Layer #########
+        # assign the neurons in the input layer with a value
+        for i in range(0,4):
+            for train_item in train_row:
+                for index, value in enumerate(train_item[2:]):
+                    self.input_neurons[index].value = value
+
+                ##### Hidden Layer ########
+                # Apply the step function on the Sum of ( output of input layer * hidden weight list )
+                for j, hidden_item in enumerate(self.hidden_neurons):
+                    total = 0
+                    for i, input_item in enumerate(self.input_neurons):
+                        total += (input_item.value * self.h_weights[i][j])
+                    self.x = total
+                    # apply step function on the sum
+                    total = self.step_function(total)
+                    hidden_item.value = total
+
+                ##### Output Layer ########
+                # Apply the step function on the Sum of ( output of hidden layer * output weight list )
+                for j, output_item in enumerate(self.output_neurons):
+                    total = 0
+                    for i, hidden_item in enumerate(self.hidden_neurons):
+                        total += (hidden_item.value * self.o_weights[i][j])
+                    self.x = total
+                    total = self.step_function(total)
+                    output_item.value = total
+
+                # output prediction for the orientation in the form [0, 90, 180, 270]
+                maximum = self.soft_max([x.value for x in self.output_neurons])
+                # print maximum
+                # raw_input()
+                # for x in self.output_neurons:
+                #     if maximum != x.value:
+                #         x.value = 0
+                #     else:
+                #         x.value = 1
+
+                # for x in self.output_neurons:
+                # print x.value
+
+                # Backpropogation Starts here
+                # ---------------------------
+
+                # calculate output Delta
+                output_delta = {}
+                for index, x in  enumerate(self.result_map(train_item[1])):
+                    derivative  =  self.step_function_der(self.output_neurons[index].x)
+                    diff = (x - maximum[index])
+                    output_delta[index] = derivative * diff
+
+                # print self.result_map(train_item[1])
+                # print output_delta
+
+
+                # calculate hidden Delta
+                hidden_delta = {}
+                for i, hidden_item in enumerate(self.hidden_neurons):
+                    total = 0
+                    for j, output_item in enumerate(self.output_neurons):
+                        total += (self.step_function_der(hidden_item.x) * output_delta[j] * self.o_weights[i][j])
+                        # print total, output_delta[j], self.o_weights[i][j]
+                        # if math.isnan(total):
+                        #     raw_input()
+                    hidden_delta[i] = total
+
+                # Applying Weights
+                alpha = 0.00001
+                for j, hidden_item in enumerate(self.hidden_neurons):
+                    for i, input_item in enumerate(self.input_neurons):
+                        self.h_weights[i][j] += (alpha * input_item.value * hidden_delta[j])
+
+                for j, output_item in enumerate(self.output_neurons):
+                    for i, hidden_item in enumerate(self.hidden_neurons):
+                        self.o_weights[i][j] += (alpha * hidden_item.value * output_delta[j])
+        #print self.h_weights
+        print self.o_weights
+        print "Training Complete"
+
+    def get_orientation(self, x):
+        values = {0: 0, 1: 90, 2: 180, 3: 270}
+        return values[x.index(max(x))]
+
+    def test(self, train_row):
+        values = Counter()
+        correct = 0
+        incorrect = 0
+        ##### Input Layer #########
+        # assign the neurons in the input layer with a value
+        for train_item in train_row:
+            for index, value in enumerate(train_item[2:]):
+                self.input_neurons[index].value = value
+
+            ##### Hidden Layer ########
+            # Apply the step function on the Sum of ( output of input layer * hidden weight list )
+            for j, hidden_item in enumerate(self.hidden_neurons):
+                total = 0
+                for i, input_item in enumerate(self.input_neurons):
+                    total += (input_item.value * self.h_weights[i][j])
+
+                # apply step function on the sum
+                total = self.step_function(total)
+                hidden_item.value = total
+
+            ##### Output Layer ########
+            # Apply the step function on the Sum of ( output of hidden layer * output weight list )
+            for j, output_item in enumerate(self.output_neurons):
+                total = 0
+                for i, hidden_item in enumerate(self.hidden_neurons):
+                    total += (hidden_item.value * self.o_weights[i][j])
+                total = self.step_function(total)
+                output_item.value = total
+
+            # output prediction for the orientation in the form [0, 90, 180, 270]
+            maximum = self.soft_max([x.value for x in self.output_neurons])
+            if int(train_item[1]) == self.get_orientation(maximum):
+                 values[self.get_orientation(maximum)] += 1
+
+
+        print values
+        print "correct : ",sum(values.values())/float(len(train_row))
+
