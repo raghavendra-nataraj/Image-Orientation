@@ -1,19 +1,20 @@
 import math
-import numpy as np
+import random
 import itertools
 import pprint
 import operator
 import csv
 import time
+import json
 from random import gauss
 from collections import Counter
-
 
 
 class Neuron:
     def __init__(self):
         self.value = 0
         self.x = 0
+
 
 class Model:
     model_type = None
@@ -38,7 +39,7 @@ class Nearest(Model):
         self.vector_keys = indices_to_loop
 
     def train(self, train_row):
-        self.model.append(train_row)
+        self.model.append(list(train_row))
 
     def test(self, test_row):
         minimum_distance = float("Inf")
@@ -60,6 +61,7 @@ class Nearest(Model):
 class AdaBoost(Model):
     vector_keys = []
     stump_allocation = {"0": [], "90": [], "180": [], "270": []}
+    stump_lookups = {"0": [], "90": [], "180": [], "270": []}
 
     def __init__(self, indices_to_loop, stump_count):
         self.model_type = "adaboost"
@@ -70,20 +72,18 @@ class AdaBoost(Model):
     def train(self, train_rows):
         rows_considered = train_rows
         feature_combinations = [i for i in itertools.permutations(self.vector_keys, 2)]
-        counter = 1
-        incorrect_ids = []
-        past_incorrect_ids = []
         start = time.time()
+        # features_to_search = 500
         for orientation in ["0", "90", "180", "270"]:
             print("New orientation:" + orientation)
             stumps_left = self.stump_count
             weights = [1.0 / len(rows_considered)] * len(rows_considered)
+            lookup_variable = random.sample(feature_combinations, 5 * (self.stump_count))
             while stumps_left > 0:
-                incorrect_ids = []
-                # pprint.pprint(weights[1:30])
+                print("We have " + str(stumps_left) + " number of stumps left to create")
                 performance_index = {}
                 counter = 0
-                for current_combination in feature_combinations:
+                for current_combination in lookup_variable:
                     if current_combination in self.stump_allocation[str(orientation)]:
                         print("Skipping existing combination" + str(current_combination))
                         continue
@@ -92,9 +92,6 @@ class AdaBoost(Model):
                     error_count = 0
                     all_count = 0
                     totals = 0
-                    if counter % 1000 == 0:
-                        end = time.time()
-                        print str((1.0 * counter) / 36672) + " at " + str(end - start)
                     train_index = 0
                     for weight_index in range(0, len(weights)):
                         totals += weights[weight_index]
@@ -104,31 +101,27 @@ class AdaBoost(Model):
                                 current_combination[1]]:
                                 correct_counts += weights[weight_index]
                             else:
-                                incorrect_counts += weights[weight_index]
+                                # incorrect_counts += weights[weight_index]
                                 error_count += 1
                         train_index += 1
                     current_performance = (1.0 * correct_counts) / totals
-                    performance_index[(current_combination[0], current_combination[1])] = current_performance
+                    error = (1.0 * error_count) / all_count
+                    performance_index[(current_combination[0], current_combination[1])] = (current_performance, error)
+
                     counter += 1
                 current_stump_features = max(performance_index.iteritems(), key=operator.itemgetter(1))[0]
-                error = (1.0 * error_count) / all_count
-                error_count = 0
+                error = max(performance_index.iteritems(), key=operator.itemgetter(1))[1][1]
                 self.stump_allocation[str(orientation)].append(current_stump_features)
                 self.save("in_progress_model.model")
                 for weight_index in range(0, len(weights)):
                     if str(rows_considered[weight_index]["orientation"]) == orientation:
                         if rows_considered[weight_index][current_stump_features[0]] < rows_considered[weight_index][
                             current_stump_features[1]]:
-                            if len(past_incorrect_ids) < 1 or weight_index in past_incorrect_ids:
-                                error_count += 1
-                                incorrect_ids.append(weight_index)
-
                             weights[weight_index] *= (error / (1.0 - error))
                 base = sum(weights)
                 for weight_index in range(0, len(weights)):
                     weights[weight_index] = weights[weight_index] / base
                 stumps_left -= 1
-                past_incorrect_ids = list(incorrect_ids)
 
     def test(self, test_row):
         votes = {}
@@ -138,13 +131,23 @@ class AdaBoost(Model):
                 if test_row[stump[0]] > test_row[stump[1]]:
                     orientation_acceptance += 1
             votes[orientation] = (1.0 * orientation_acceptance) / len(stumps)
-        return max(votes.iteritems(), key=operator.itemgetter(1))[0]
+        return test_row["id"], max(votes.iteritems(), key=operator.itemgetter(1))[0]
+
+    def load(self, filename):
+        with open(filename, 'rb') as csvfile:
+            stump_reader = csv.reader(csvfile, delimiter=',')
+            for row in stump_reader:
+                if str(row[0]) in self.stump_allocation:
+                    self.stump_lookups[str(row[0])].append((row[1], row[2]))
+                else:
+                    self.stump_lookups[str(row[0])] = [(row[1], row[2])]
 
     def save(self, filename):
-        with open(filename, 'wb') as csv_file:
-            writer = csv.writer(csv_file)
-            for key, value in self.stump_allocation.items():
-                writer.writerow([key, value])
+        with open(filename, 'wb') as out:
+            csv_out = csv.writer(out)
+            for orientation in self.stump_allocation.iterkeys():
+                for items in self.stump_allocation[orientation]:
+                    csv_out.writerow([orientation, items[0], items[1]])
 
     def __str__(self):
         return pprint.pformat(self.stump_allocation)
@@ -178,17 +181,16 @@ class NNet(Model):
     def step_function(self, x):
         if x > 0:
             return x
-        return 0.01*x
+        return 0.01 * x
 
     def step_function_der(self, x):
         if x > 0:
             return 1
         return 0.01
-    
+
     def result_map(self, x):
         value = {0: [1, 0, 0, 0], 90: [0, 1, 0, 0], 180: [0, 0, 1, 0], 270: [0, 0, 0, 1]}
         return value[x]
-
 
     def soft_max(self, x):
         max_element = max(x)
@@ -198,7 +200,7 @@ class NNet(Model):
         return ret_res
 
     def generate_gaussian(self):
-        return int(gauss(float(255/2), float(255 / 4)))
+        return int(gauss(float(255 / 2), float(255 / 4)))
 
     def train(self, train_row):
         self.model = train_row
@@ -224,7 +226,7 @@ class NNet(Model):
 
         ##### Input Layer #########
         # assign the neurons in the input layer with a value
-        for i in range(0,4):
+        for i in range(0, 4):
             for train_item in train_row:
                 for index, value in enumerate(train_item[2:]):
                     self.input_neurons[index].value = value
@@ -268,8 +270,8 @@ class NNet(Model):
 
                 # calculate output Delta
                 output_delta = {}
-                for index, x in  enumerate(self.result_map(train_item[1])):
-                    derivative  =  self.step_function_der(self.output_neurons[index].x)
+                for index, x in enumerate(self.result_map(train_item[1])):
+                    derivative = self.step_function_der(self.output_neurons[index].x)
                     diff = (x - maximum[index])
                     output_delta[index] = derivative * diff
 
@@ -297,7 +299,7 @@ class NNet(Model):
                 for j, output_item in enumerate(self.output_neurons):
                     for i, hidden_item in enumerate(self.hidden_neurons):
                         self.o_weights[i][j] += (alpha * hidden_item.value * output_delta[j])
-        #print self.h_weights
+        # print self.h_weights
         print self.o_weights
         print "Training Complete"
 
@@ -338,9 +340,7 @@ class NNet(Model):
             # output prediction for the orientation in the form [0, 90, 180, 270]
             maximum = self.soft_max([x.value for x in self.output_neurons])
             if int(train_item[1]) == self.get_orientation(maximum):
-                 values[self.get_orientation(maximum)] += 1
-
+                values[self.get_orientation(maximum)] += 1
 
         print values
-        print "correct : ",sum(values.values())/float(len(train_row))
-
+        print "correct : ", sum(values.values()) / float(len(train_row))

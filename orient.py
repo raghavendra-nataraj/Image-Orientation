@@ -6,7 +6,6 @@ import itertools
 from Model import NNet
 from Model import Nearest, AdaBoost
 
-
 train_file = "train_file.txt"
 test_file = "test_file.txt"
 method = ""
@@ -87,17 +86,16 @@ if method == "nearest":
     for train_item in train_rows:
         model.train(train_item)
 elif method == "nnet":
-    model = NNet(parameter,len(train_rows_net[0])-2)
+    model = NNet(parameter, len(train_rows_net[0]) - 2)
     model.train(train_rows_net)
     model.test(test_rows_net)
 elif method == "adaboost":
     model = AdaBoost(color_indices, int(parameter))
+    model.load("test.model")
     model.train(train_rows)
-    model.save("adaboost_model.model")
-
+    # model.save("adaboost_model.model")
 
 successes = 0
-exit(0)
 totals = 0
 print("Training complete")
 confusion_matrix = {"0": {"0": 0, "90": 0, "180": 0, "270": 0}, "90": {"0": 0, "90": 0, "180": 0, "270": 0},
@@ -105,7 +103,7 @@ confusion_matrix = {"0": {"0": 0, "90": 0, "180": 0, "270": 0}, "90": {"0": 0, "
 for test_item in test_rows:
     totals += 1
     id, orientation = model.test(test_item)
-    if orientation == test_item["orientation"]:
+    if str(orientation) == str(test_item["orientation"]):
         successes += 1
     confusion_matrix[str(test_item["orientation"])][str(orientation)] += 1
 print("Confusion Matrix")
