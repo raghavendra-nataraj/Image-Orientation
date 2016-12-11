@@ -5,7 +5,7 @@ import pprint
 import operator
 import csv
 import time
-import json
+
 from random import gauss
 from collections import Counter
 
@@ -226,8 +226,14 @@ class NNet(Model):
 
         ##### Input Layer #########
         # assign the neurons in the input layer with a value
-        for i in range(0, 4):
-            for train_item in train_row:
+
+        for i in range(0, 100):
+            rand_indexes = [random.randint(0, len(train_row) - 1) for x in range(0, 1000)]
+            values = Counter()
+            # for train_item in train_row:
+            for rand_index in rand_indexes:
+                train_item = train_row[rand_index]
+
                 for index, value in enumerate(train_item[2:]):
                     self.input_neurons[index].value = value
 
@@ -254,6 +260,9 @@ class NNet(Model):
 
                 # output prediction for the orientation in the form [0, 90, 180, 270]
                 maximum = self.soft_max([x.value for x in self.output_neurons])
+                if int(train_item[1]) == self.get_orientation(maximum):
+                    values[self.get_orientation(maximum)] += 1
+
                 # print maximum
                 # raw_input()
                 # for x in self.output_neurons:
@@ -291,7 +300,7 @@ class NNet(Model):
                     hidden_delta[i] = total
 
                 # Applying Weights
-                alpha = 0.00001
+                alpha = 1 / float(len(train_row))
                 for j, hidden_item in enumerate(self.hidden_neurons):
                     for i, input_item in enumerate(self.input_neurons):
                         self.h_weights[i][j] += (alpha * input_item.value * hidden_delta[j])
@@ -299,7 +308,12 @@ class NNet(Model):
                 for j, output_item in enumerate(self.output_neurons):
                     for i, hidden_item in enumerate(self.hidden_neurons):
                         self.o_weights[i][j] += (alpha * hidden_item.value * output_delta[j])
+
+            print values
+            print "correct : ", sum(values.values()) / float(len(train_row))
+
         # print self.h_weights
+
         print self.o_weights
         print "Training Complete"
 
