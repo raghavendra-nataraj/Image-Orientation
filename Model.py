@@ -15,6 +15,8 @@ class Neuron:
     def __init__(self):
         self.value = 0
         self.x = 0
+        self.bais = 1
+        self.wbais = gauss(float(0),float(1))
 
 class Model:
     model_type = None
@@ -180,11 +182,13 @@ class NNet(Model):
         if x > 0:
             return x
         return 0.01*x
+        #return 1/(1+math.exp(-x))
 
     def step_function_der(self, x):
         if x > 0:
             return 1
         return 0.01
+        #return self.step_function(x)*(1-self.step_function(x))
     
     def result_map(self, x):
         value = {0: [1, 0, 0, 0], 90: [0, 1, 0, 0], 180: [0, 0, 1, 0], 270: [0, 0, 0, 1]}
@@ -199,7 +203,8 @@ class NNet(Model):
         return ret_res
 
     def generate_gaussian(self):
-        return int(gauss(float(255/2), float(255 / 4)))
+        return gauss(float(0), float(1))
+        #return gauss(float(255/2),float(255/4))
 
     def train(self, train_row):
         self.model = train_row
@@ -225,12 +230,11 @@ class NNet(Model):
 
         ##### Input Layer #########
         # assign the neurons in the input layer with a value
-        for i in range(0,100):
-            rand_indexes = [random.randint(0,len(train_row)-1) for x in range(0,1000)]
+        for main_index in range(1,250):
+            rand_indexes = random.sample(train_row,100)
             values = Counter()
             #for train_item in train_row:
-            for rand_index in rand_indexes:
-                train_item = train_row[rand_index]
+            for train_item in rand_indexes:
                 for index, value in enumerate(train_item[2:]):
                     self.input_neurons[index].value = value
 
@@ -240,6 +244,7 @@ class NNet(Model):
                     total = 0
                     for i, input_item in enumerate(self.input_neurons):
                         total += (input_item.value * self.h_weights[i][j])
+                    total+=(hidden_item.bais * hidden_item.wbais)
                     self.x = total
                     # apply step function on the sum
                     total = self.step_function(total)
@@ -251,6 +256,7 @@ class NNet(Model):
                     total = 0
                     for i, hidden_item in enumerate(self.hidden_neurons):
                         total += (hidden_item.value * self.o_weights[i][j])
+                    total+=(output_item.bais*output_item.wbais)
                     self.x = total
                     total = self.step_function(total)
                     output_item.value = total
@@ -297,20 +303,24 @@ class NNet(Model):
                     hidden_delta[i] = total
 
                 # Applying Weights
-                alpha = 1/float(len(train_row))
+                #alpha = 1/float(len(train_row))
+                alpha = 1/float(len(rand_indexes))
                 for j, hidden_item in enumerate(self.hidden_neurons):
                     for i, input_item in enumerate(self.input_neurons):
                         self.h_weights[i][j] += (alpha * input_item.value * hidden_delta[j])
+                    hidden_item.wbais+= (alpha * hidden_item.bais * hidden_delta[j])
 
                 for j, output_item in enumerate(self.output_neurons):
                     for i, hidden_item in enumerate(self.hidden_neurons):
                         self.o_weights[i][j] += (alpha * hidden_item.value * output_delta[j])
+                    output_item.wbais+=(alpha * output_item.bais * output_delta[j])
 
             print values
-            print "correct : ",sum(values.values())/float(len(train_row))
+            print "correct : ",sum(values.values())/float(len(rand_indexes))
+            
 
         #print self.h_weights
-        print self.o_weights
+       # print self.o_weights
         print "Training Complete"
 
     def get_orientation(self, x):
@@ -333,7 +343,7 @@ class NNet(Model):
                 total = 0
                 for i, input_item in enumerate(self.input_neurons):
                     total += (input_item.value * self.h_weights[i][j])
-
+                total+=(hidden_item.bais * hidden_item.wbais)
                 # apply step function on the sum
                 total = self.step_function(total)
                 hidden_item.value = total
@@ -344,6 +354,7 @@ class NNet(Model):
                 total = 0
                 for i, hidden_item in enumerate(self.hidden_neurons):
                     total += (hidden_item.value * self.o_weights[i][j])
+                total+= (output_item.bais * output_item.wbais)
                 total = self.step_function(total)
                 output_item.value = total
 
