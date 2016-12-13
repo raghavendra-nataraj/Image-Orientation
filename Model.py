@@ -307,13 +307,13 @@ class NNet(Model):
                 alpha = 1/float(len(rand_indexes))
                 for j, hidden_item in enumerate(self.hidden_neurons):
                     for i, input_item in enumerate(self.input_neurons):
-                        self.h_weights[i][j] += (alpha * input_item.value * hidden_delta[j])
-                    hidden_item.wbais+= (alpha * hidden_item.bais * hidden_delta[j])
+                        self.h_weights[i][j] += ((alpha/main_index) * input_item.value * hidden_delta[j])
+                    hidden_item.wbais+= ((alpha/main_index) * hidden_item.bais * hidden_delta[j])
 
                 for j, output_item in enumerate(self.output_neurons):
                     for i, hidden_item in enumerate(self.hidden_neurons):
-                        self.o_weights[i][j] += (alpha * hidden_item.value * output_delta[j])
-                    output_item.wbais+=(alpha * output_item.bais * output_delta[j])
+                        self.o_weights[i][j] += ((alpha/main_index) * hidden_item.value * output_delta[j])
+                    output_item.wbais+=((alpha/main_index) * output_item.bais * output_delta[j])
 
             print values
             print "correct : ",sum(values.values())/float(len(rand_indexes))
