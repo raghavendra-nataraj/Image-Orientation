@@ -89,7 +89,6 @@ if method == "nearest":
 elif method == "nnet":
     model = NNet(parameter, len(train_rows_net[0]) - 2)
     model.train(train_rows_net)
-    model.test(test_rows_net)
 elif method == "adaboost":
     model = AdaBoost(color_indices, int(parameter))
     model.load("test.model")
@@ -101,18 +100,20 @@ totals = 0
 # print("Training complete")
 confusion_matrix = {"0": {"0": 0, "90": 0, "180": 0, "270": 0}, "90": {"0": 0, "90": 0, "180": 0, "270": 0},
                     "180": {"0": 0, "90": 0, "180": 0, "270": 0}, "270": {"0": 0, "90": 0, "180": 0, "270": 0}}
+
 row_counter = 0
 totals = len(test_rows)
 correct_ids = []
 incorrect_ids = []
-for test_item in test_rows:
-    # row_counter += 1
-    # if row_counter % (totals / 10) == 0:
-    #     print ((1.0 * row_counter) / totals)
-    id, orientation = model.test(test_item)
+for test_index, test_item in enumerate(test_rows):
+    totals += 1
+    if method == "nnet":
+        id, orientation = model.test(test_rows_net[test_index])
+    else:
+        id, orientation = model.test(test_item)
     if str(orientation) == str(test_item["orientation"]):
         if len(correct_ids) < 5:
-            correct_ids.append((id))
+            correct_ids.append(id)
         successes += 1
     else:
         if len(incorrect_ids) < 5:
