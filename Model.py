@@ -32,24 +32,49 @@ class Model:
 
 class Nearest(Model):
     vector_keys = []
+    k = 1
 
-    def __init__(self, indices_to_loop):
+    def __init__(self, indices_to_loop, k=1):
         self.model_type = "nearest"
         self.model = []
         self.vector_keys = indices_to_loop
+        self.k = k
 
     def train(self, train_row):
-        self.model.append(list(train_row))
+        self.model.append(train_row)
 
     def test(self, test_row):
-        minimum_distance = float("Inf")
-        current_classification = None
+        nearest_neighbors = []
+
+        row_counter = 0
+        totals = len(self.model)
         for model_row in self.model:
+            # row_counter += 1
+            # if row_counter % (totals/ 10)  == 0:
+            #     print ("\t"+str((1.0 * row_counter) / totals))
             current_distance = self.distance(model_row, test_row)
-            if current_distance < minimum_distance:
-                minimum_distance = current_distance
-                current_classification = model_row["orientation"]
-        return test_row["id"], current_classification
+            current_classification = model_row["orientation"]
+            if len(nearest_neighbors) < self.k:
+                nearest_neighbors.append((current_distance, model_row["orientation"]))
+            else:
+                swap_out_distance = None
+                swap_out_class = None
+                for distance, classification in nearest_neighbors:
+                    if current_distance < distance:
+                        if swap_out_distance is not None:
+                            current_distance = swap_out_distance
+                            current_classification = swap_out_class
+                        swap_out_class = classification
+                        swap_out_distance = distance
+                        nearest_neighbors.remove((swap_out_distance, swap_out_class))
+                        nearest_neighbors.append((current_distance, current_classification))
+
+                    minimum_distance = current_distance
+                    current_classification = model_row["orientation"]
+        votes = {"0": 0, "90": 0, "180": 0, "270": 0}
+        for distance, orientation in nearest_neighbors:
+            votes[str(orientation)] += 1
+        return test_row["id"], max(votes.iteritems(), key=operator.itemgetter(1))[0]
 
     def distance(self, dp_1, dp_2):
         sum_distance = 0
@@ -75,17 +100,19 @@ class AdaBoost(Model):
         start = time.time()
         # features_to_search = 500
         for orientation in ["0", "90", "180", "270"]:
-            print("New orientation:" + orientation)
+            # print("New orientation:" + orientation)
             stumps_left = self.stump_count
             weights = [1.0 / len(rows_considered)] * len(rows_considered)
-            lookup_variable = random.sample(feature_combinations, 5 * (self.stump_count))
+            lookup_variable = random.sample(feature_combinations, 5 * self.stump_count)
+            feature_subset = lookup_variable
+            # +self.stump_lookups[str(orientation)]
             while stumps_left > 0:
-                print("We have " + str(stumps_left) + " number of stumps left to create")
+                #   print("We have " + str(stumps_left) + " number of stumps left to create")
                 performance_index = {}
                 counter = 0
-                for current_combination in lookup_variable:
+                for current_combination in feature_subset:
                     if current_combination in self.stump_allocation[str(orientation)]:
-                        print("Skipping existing combination" + str(current_combination))
+                        #          print("Skipping existing combination" + str(current_combination))
                         continue
                     correct_counts = 0
                     incorrect_counts = 0
@@ -102,7 +129,7 @@ class AdaBoost(Model):
                                 correct_counts += weights[weight_index]
                             else:
                                 # incorrect_counts += weights[weight_index]
-                                error_count += 1
+                                error_count += weights[weight_index]
                         train_index += 1
                     current_performance = (1.0 * correct_counts) / totals
                     error = (1.0 * error_count) / all_count

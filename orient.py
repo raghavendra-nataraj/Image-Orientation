@@ -3,6 +3,7 @@
 import sys
 import csv
 import itertools
+import pprint
 from Model import NNet
 from Model import Nearest, AdaBoost
 
@@ -79,10 +80,10 @@ with open(test_file, "r") as test_file_handler:
         current_dict = dict(zip(indices, current_row))
         test_rows.append(current_dict)
         test_rows_net.append(current_row)
-print("Data set ready")
+# print("Data set ready")
 model = None
 if method == "nearest":
-    model = Nearest(color_indices)
+    model = Nearest(color_indices, 1)
     for train_item in train_rows:
         model.train(train_item)
 elif method == "nnet":
@@ -97,15 +98,28 @@ elif method == "adaboost":
 
 successes = 0
 totals = 0
-print("Training complete")
+# print("Training complete")
 confusion_matrix = {"0": {"0": 0, "90": 0, "180": 0, "270": 0}, "90": {"0": 0, "90": 0, "180": 0, "270": 0},
                     "180": {"0": 0, "90": 0, "180": 0, "270": 0}, "270": {"0": 0, "90": 0, "180": 0, "270": 0}}
+row_counter = 0
+totals = len(test_rows)
+correct_ids = []
+incorrect_ids = []
 for test_item in test_rows:
-    totals += 1
+    # row_counter += 1
+    # if row_counter % (totals / 10) == 0:
+    #     print ((1.0 * row_counter) / totals)
     id, orientation = model.test(test_item)
     if str(orientation) == str(test_item["orientation"]):
+        if len(correct_ids) < 5:
+            correct_ids.append((id))
         successes += 1
+    else:
+        if len(incorrect_ids) < 5:
+            incorrect_ids.append((id, orientation))
     confusion_matrix[str(test_item["orientation"])][str(orientation)] += 1
+pprint.pprint(correct_ids)
+pprint.pprint(incorrect_ids)
 print("Confusion Matrix")
 print("\t0\t90\t180\t270\t")
 # for key in confusion_matrix.iterkeys():
@@ -117,6 +131,4 @@ print("180\t" + str(confusion_matrix["180"]["0"]) + "\t" + str(confusion_matrix[
     confusion_matrix["180"]["180"]) + "\t" + str(confusion_matrix["180"]["270"]))
 print("270\t" + str(confusion_matrix["270"]["0"]) + "\t" + str(confusion_matrix["270"]["90"]) + "\t" + str(
     confusion_matrix["270"]["180"]) + "\t" + str(confusion_matrix["270"]["270"]))
-print(successes)
-print(totals)
 print(1.0 * successes / totals)
