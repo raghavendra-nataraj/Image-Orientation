@@ -134,7 +134,7 @@ class AdaBoost(Model):
                                 error_count += weights[weight_index]
                         train_index += 1
                     current_performance = (1.0 * correct_counts) / totals
-                    error = (1.0 * error_count) / all_count
+                    error = (1.0 * error_count) / totals
                     performance_index[(current_combination[0], current_combination[1])] = (current_performance, error)
 
                     counter += 1

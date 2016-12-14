@@ -106,11 +106,13 @@ totals = len(test_rows)
 correct_ids = []
 incorrect_ids = []
 for test_index, test_item in enumerate(test_rows):
-    totals += 1
+    id = None
+    orientation = None
     if method == "nnet":
         id, orientation = model.test(test_rows_net[test_index])
     else:
         id, orientation = model.test(test_item)
+
     if str(orientation) == str(test_item["orientation"]):
         if len(correct_ids) < 5:
             correct_ids.append(id)
@@ -119,17 +121,19 @@ for test_index, test_item in enumerate(test_rows):
         if len(incorrect_ids) < 5:
             incorrect_ids.append((id, orientation))
     confusion_matrix[str(test_item["orientation"])][str(orientation)] += 1
-pprint.pprint(correct_ids)
-pprint.pprint(incorrect_ids)
-print("Confusion Matrix")
-print("\t0\t90\t180\t270\t")
-# for key in confusion_matrix.iterkeys():
-print("0\t" + str(confusion_matrix["0"]["0"]) + "\t" + str(confusion_matrix["0"]["90"]) + "\t" + str(
-    confusion_matrix["0"]["180"]) + "\t" + str(confusion_matrix["0"]["270"]))
-print("90\t" + str(confusion_matrix["90"]["0"]) + "\t" + str(confusion_matrix["90"]["90"]) + "\t" + str(
-    confusion_matrix["90"]["180"]) + "\t" + str(confusion_matrix["90"]["270"]))
-print("180\t" + str(confusion_matrix["180"]["0"]) + "\t" + str(confusion_matrix["180"]["90"]) + "\t" + str(
-    confusion_matrix["180"]["180"]) + "\t" + str(confusion_matrix["180"]["270"]))
-print("270\t" + str(confusion_matrix["270"]["0"]) + "\t" + str(confusion_matrix["270"]["90"]) + "\t" + str(
-    confusion_matrix["270"]["180"]) + "\t" + str(confusion_matrix["270"]["270"]))
+# pprint.pprint(correct_ids)
+# pprint.pprint(incorrect_ids)
+# print("Confusion Matrix")
+# print("\t0\t90\t180\t270\t")
+# # for key in confusion_matrix.iterkeys():
+# print("0\t" + str(confusion_matrix["0"]["0"]) + "\t" + str(confusion_matrix["0"]["90"]) + "\t" + str(
+#     confusion_matrix["0"]["180"]) + "\t" + str(confusion_matrix["0"]["270"]))
+# print("90\t" + str(confusion_matrix["90"]["0"]) + "\t" + str(confusion_matrix["90"]["90"]) + "\t" + str(
+#     confusion_matrix["90"]["180"]) + "\t" + str(confusion_matrix["90"]["270"]))
+# print("180\t" + str(confusion_matrix["180"]["0"]) + "\t" + str(confusion_matrix["180"]["90"]) + "\t" + str(
+#     confusion_matrix["180"]["180"]) + "\t" + str(confusion_matrix["180"]["270"]))
+# print("270\t" + str(confusion_matrix["270"]["0"]) + "\t" + str(confusion_matrix["270"]["90"]) + "\t" + str(
+#     confusion_matrix["270"]["180"]) + "\t" + str(confusion_matrix["270"]["270"]))
+# print(successes)
+# print(totals)
 print(1.0 * successes / totals)
