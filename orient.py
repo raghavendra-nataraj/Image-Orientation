@@ -119,7 +119,6 @@ for test_index, test_item in enumerate(test_rows):
     else:
         id, orientation = model.test(test_item)
         if str(orientation) == str(test_item["orientation"]):
-            print id, test_item["id"]
             if len(correct_ids) < 5:
                 correct_ids.append(id)
             successes += 1
