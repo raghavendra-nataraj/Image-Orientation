@@ -29,8 +29,9 @@ if method in ["adaboost", "nnet"]:
         sys.exit(2)
 if method in ["best"]:
     try:
+	method="nearest"
+	parameter=1
         model_file = sys.argv[4]
-        parameter = 1
     except IndexError:
         print("We are running the best model. This will take around half hour to run")
 header = ["id", "orientation"]
