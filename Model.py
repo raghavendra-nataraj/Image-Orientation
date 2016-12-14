@@ -342,8 +342,8 @@ class NNet(Model):
                         self.o_weights[i][j] += ((alpha/main_index) * hidden_item.value * output_delta[j])
                     output_item.wbais+=((alpha/main_index) * output_item.bais * output_delta[j])
 
-            print values
-            print "correct : ",sum(values.values())/float(len(rand_indexes))
+            #print values
+            #print "correct : ",sum(values.values())/float(len(rand_indexes))
             
 
         #print self.h_weights
