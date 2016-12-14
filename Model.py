@@ -257,7 +257,7 @@ class NNet(Model):
 
         ##### Input Layer #########
         # assign the neurons in the input layer with a value
-        for main_index in range(1,250):
+        for main_index in range(1,100):
             rand_indexes = random.sample(train_row,100)
             values = Counter()
             #for train_item in train_row:

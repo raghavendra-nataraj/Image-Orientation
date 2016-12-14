@@ -1,9 +1,9 @@
 # /usr/bin/env python
-
 import sys
 import csv
 import itertools
 import pprint
+import random
 from Model import NNet
 from Model import Nearest, AdaBoost
 
@@ -110,19 +110,25 @@ for test_index, test_item in enumerate(test_rows):
     orientation = None
     if method == "nnet":
         id, orientation = model.test(test_rows_net[test_index])
+        if str(orientation) == str(test_rows_net[test_index][1]):
+            successes+=1
+            correct_ids.append((id,orientation))
+        else:
+            incorrect_ids.append((id,orientation))
+        confusion_matrix[str(test_rows_net[test_index][1])][str(orientation)]+=1
     else:
         id, orientation = model.test(test_item)
-
-    if str(orientation) == str(test_item["orientation"]):
-        if len(correct_ids) < 5:
-            correct_ids.append(id)
-        successes += 1
-    else:
-        if len(incorrect_ids) < 5:
-            incorrect_ids.append((id, orientation))
-    confusion_matrix[str(test_item["orientation"])][str(orientation)] += 1
-# pprint.pprint(correct_ids)
-# pprint.pprint(incorrect_ids)
+        if str(orientation) == str(test_item["orientation"]):
+            print id,test_item["id"]
+            if len(correct_ids) < 5:
+                correct_ids.append(id)
+            successes += 1
+        else:
+            if len(incorrect_ids) < 5:
+                incorrect_ids.append((id, orientation))
+        confusion_matrix[str(test_item["orientation"])][str(orientation)] += 1
+#pprint.pprint(correct_ids)
+#pprint.pprint(incorrect_ids)
 # print("Confusion Matrix")
 # print("\t0\t90\t180\t270\t")
 # # for key in confusion_matrix.iterkeys():
