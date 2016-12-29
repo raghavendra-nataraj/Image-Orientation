@@ -263,7 +263,7 @@ class NNet(Model):
             #for train_item in train_row:
             for train_item in rand_indexes:
                 for index, value in enumerate(train_item[2:]):
-                    self.input_neurons[index].value = value
+                    self.input_neurons[index].value = (value-128)/float(128)
 
                 ##### Hidden Layer ########
                 # Apply the step function on the Sum of ( output of input layer * hidden weight list )
@@ -331,7 +331,7 @@ class NNet(Model):
 
                 # Applying Weights
                 #alpha = 1/float(len(train_row))
-                alpha = 1/float(len(rand_indexes))
+                alpha = 1000/float(len(rand_indexes))
                 for j, hidden_item in enumerate(self.hidden_neurons):
                     for i, input_item in enumerate(self.input_neurons):
                         self.h_weights[i][j] += ((alpha/main_index) * input_item.value * hidden_delta[j])
@@ -360,7 +360,7 @@ class NNet(Model):
         ##### Input Layer #########
         # assign the neurons in the input layer with a value
         for index, value in enumerate(test_item[2:]):
-            self.input_neurons[index].value = value
+            self.input_neurons[index].value = (value-128)/float(128)
 
         ##### Hidden Layer ########
         # Apply the step function on the Sum of ( output of input layer * hidden weight list )
